@@ -1,0 +1,362 @@
+---
+title: "Retail store Casestudy"
+author: "Jashwanth Neeli"
+date: "16/07/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+# BUSINESS PROBLEM: 
+
+
+
+#### A Retail store is required to analyze the day-to-day transactions and keep a 
+#### track of its customers spread across various locations along with their 
+#### purchases/returns across various categories. 
+#### Create an RMarkdown report and display the below calculated metrics, 
+#### reports and inferences
+
+
+### DATA AVAILABLE -
+
+#### Customer: Customers information including demographics 
+#### Transaction: Transactions of customers 
+#### Product Hierarchy: Product information (category, sub category etc...)
+
+
+
+#### 1. Merge the datasets Customers, Product Hierarchy and Transactions as 
+#### Customer_Final. Ensure to keep all customers who have done 
+#### transactions with us and select the join type accordingly. 
+
+
+#### a. Use the base merge() 
+
+
+```{r}
+setwd("C:/R_Aug/case_study1_Retail")
+f1 = read.csv("Customer.csv")
+f2 = read.csv("prod_cat_info.csv")
+f3 = read.csv("Transactions.csv")
+```
+
+
+#a: using the base merge:
+
+#####Method1: using (core R method)
+
+#####Common column that can be used to perform the join is customer_Id in Customer table and cust_id in 
+##Transactions table and prod_cat table can be combined using prod_cat_code and prod_sub_cat_code 
+#from prod_cat table. (Inner JOIN is Used here as i only want common records.)
+
+
+
+```{r}
+merging <- merge(x=f1, y=f3, by.x="customer_Id", by.y="cust_id", all= FALSE)
+
+
+Customer_Final <- merge(x=merging, y=f2, by.x= c("prod_cat_code","prod_subcat_code"), by.y= c("prod_cat_code", "prod_sub_cat_code"), all = FALSE)
+
+```
+
+##### Checking NA Value In  The Dataset
+
+```{r}
+
+sum(is.na(Customer_Final))
+
+```
+##### Droping NA Value as Number of NA Value is very less
+
+``` {r} 
+
+require(tidyr)
+Customer_Final <- tidyr::drop_na(Customer_Final)
+
+Customer_Final <- inner_join(dplyr_merge, f2, by=c("prod_cat_code"="prod_cat_code", "prod_subcat_code"="prod_sub_cat_code"))
+
+```
+
+#### b. Dplyr merge functions 
+
+```{r}
+
+
+require(dplyr)
+dplyr_merge <- inner_join(f1, f3, by=c("customer_Id"="cust_id"))
+
+```
+
+```{r}
+
+df<- Customer_Final
+dim(df)
+
+```
+#2.prepare a summary report for the merged data set.
+
+#a. Get the column names and their corresponding data types.
+
+```{r}
+
+#2.prepare a summary report for the merged data set.
+
+#a. Get the column names and their corresponding data types.
+
+    col_names <- data.frame(colnames(df))
+    data.frame(sapply(df, class))
+
+```
+
+
+###b.  top/bottom 10 observations.
+
+```{r}
+
+    
+    View(head(df,10))
+
+    View(tail(df,10))
+
+```
+
+
+#c.  "Five-number summary" for continuous variables(min, Q1, Median, Q3 and max)
+
+```{r}
+
+    isnum <- sapply(df, is.numeric)
+    df_num <- df[,isnum]
+    summary(df_num)
+
+```
+
+#d.  frequency tables for all the categorical variables.
+
+```{r}
+    
+FREQ_STORETYPE <- Customer_Final %>% dplyr::group_by(Store_type) %>% dplyr::summarise(FREQ = 
+                                                                                        n()) %>% dplyr::arrange( desc(FREQ))
+FREQ_STORETYPE
+FREQ_PRODCAT <- Customer_Final %>% dplyr::group_by(prod_cat) %>% dplyr::summarise(FREQ = 
+                                                                                    n()) %>% dplyr::arrange( desc(FREQ))
+FREQ_PRODCAT
+FREQ_PRODSUB <- Customer_Final %>% dplyr::group_by(prod_subcat) %>% dplyr::summarise(FREQ =
+                                                                                       n()) %>% dplyr::arrange( desc(FREQ))
+FREQ_PRODSUB
+
+
+```
+
+#3. Generate histograms for all continuous variables and frequency bars for categorical variables.
+    
+#histograms for all continuous variables
+
+```{r}
+    
+require(ggplot2)  
+
+ggplot2::ggplot(data = df_num) + aes(x= prod_cat_code) + geom_histogram(bins = 6, color = "red", fill = "skyblue2")
+
+
+
+ggplot2::ggplot(data = df_num) + aes(x= Tax) + geom_histogram(bins = 10, color = "red", fill = "skyblue2") + ggtitle("Tax_Amount")
+
+
+
+ggplot2::ggplot(data = df_num) + aes(x= total_amt) + geom_histogram(bins = 10, color = "red", fill = "skyblue2") + ggtitle("Tax_Amount")
+
+
+```
+
+
+```{r}
+
+#FREQUENCY BARS FOR CATEGORICAL VARIABLE.
+
+#frequency bar for product category.
+prod_cat_freq <- df_char%>% group_by(prod_cat) %>% summarise(freq = n())
+
+ggplot2::ggplot(data = prod_cat_freq) + aes(x= prod_cat, y= freq) + geom_bar(stat = "identity", fill= "red", color = "black" ) +ggtitle("count of each prod_cat")
+
+
+#frequency bar for product sub category.
+prod_subcat_freq <- df_char%>% group_by(prod_subcat) %>% summarise(freq = n())
+
+ggplot2::ggplot(data = prod_subcat_freq) + aes(x= prod_subcat, y= freq) + geom_bar(stat = "identity", fill= "red", color = "black" ) + ggtitle("count of each product sub_cat")
+
+
+#frequency bar for store type category.
+Store_type_freq <- df_char%>% group_by(Store_type) %>% summarise(freq = n())
+
+ggplot2::ggplot(data = Store_type_freq) + aes(x= Store_type, y= freq) + geom_bar(stat = "identity", fill= "red", color = "black" ) + ggtitle("count of each storetype")
+
+
+#frequency bar for Gender category.
+Gender_freq <- df_char%>% group_by(Gender) %>% summarise(freq = n())
+
+ggplot2::ggplot(data = Gender_freq) + aes(x= Gender, y= freq) + geom_bar(stat = "identity", fill= "red", color = "black" ) + ggtitle("count of Gender")
+
+
+
+```
+
+#4. Calculate the following information using the merged dataset:
+
+#a. Time period of the available transaction data.
+
+```{r}
+
+require(lubridate)
+
+## Loading required package: lubridate
+## 
+## Attaching package: 'lubridate'
+## The following objects are masked from 'package:base':
+## 
+##     date, intersect, setdiff, union
+
+df$TRAN_DATE_FORMAT<- lubridate::dmy(df$tran_date)
+
+A <- min(df$TRAN_DATE_FORMAT)
+B <- max(df$TRAN_DATE_FORMAT)
+
+
+(B-A)
+
+
+```
+
+#b.  count of transactions where the total amount of transaction was negative.
+
+```{r}
+
+#b.  count of transactions where the total amount of transaction was negative.
+
+neg_trans <- df%>% dplyr::filter(total_amt<0)
+
+neg_trans %>% dplyr::distinct(neg_trans$customer_Id) %>%summarise(trans_cnt=n())
+
+```
+
+
+#5. Analyze which product categories are more popular among females vs male customers.
+
+```{r}
+
+#5. Analyze which product categories are more popular among females vs male customers.
+
+Customer_male <- df[(df$Gender == "M"),]
+popular_prodM <- Customer_male %>% dplyr::group_by(Gender,prod_cat)%>%dplyr::summarise(ttl_cnt=sum(Qty))%>% dplyr::arrange(desc(ttl_cnt))
+popular_prodM
+
+Customer_Female <- df[(df$Gender == "F"),]
+popular_prodF <- Customer_Female %>% dplyr::group_by(Gender,prod_cat)%>%dplyr::summarise(ttl_cnt=sum(Qty))%>% dplyr::arrange(desc(ttl_cnt))
+popular_prodF
+
+pop_vs_Mandf <- cbind(popular_prodM, popular_prodF)
+colnames(pop_vs_Mandf) <- c("GenderM", "Prod_catM", "ttl_qty", "GenderF", "prod_catF", "TTl_qtyF")
+pop_vs_Mandf
+
+
+```
+
+#6. Which city code has the maximum customers and what was the percentage of customers from that city?
+
+```{r}
+
+count_citycode <- df%>% dplyr::group_by(city_code)%>% dplyr::summarise(cnt_cust=n(), percentage = round(n()*100/length(df$city_code),2))%>%dplyr::arrange(desc(percentage))
+
+View(count_citycode)
+
+```
+
+
+#7. Which store type sells the maximum products by value and by quantity?
+
+```{r}
+
+df %>% dplyr::group_by(Store_type)%>% summarise(sum_qty=sum(Qty),sum_val=sum(total_amt))
+
+
+```
+
+
+#8. What was the total amount earned from the “Electronics” and “Clothing” categories from Flagship Stores?
+
+```{r}
+
+Cust_flagship <- df[(df$Store_type=="Flagship store"),]
+category <- Cust_flagship[(Cust_flagship$prod_cat=="Electronics")|(Cust_flagship$prod_cat=="Clothing"),]
+ttlamt_earned <- category %>% dplyr::group_by(Store_type,prod_cat)%>% summarise(ttl_amt=sum(total_amt))
+ttlamt_earned
+
+
+```
+
+
+#9. What was the total amount earned from “Male” customers under the “Electronics” category?
+
+```{r}
+
+Cust_male <- df[df$Gender=="M",]
+male_Electronics <- Cust_male[Cust_male$prod_cat=="Electronics",]
+male_Electronics%>% dplyr::group_by(Gender,prod_cat)%>%summarise(ttl_earn=sum(total_amt))
+
+```
+
+
+#10. How many customers have more than 10 unique transactions, after removing all transactions which have any negative amounts?
+
+```{r}
+
+nonnegative_trans <- df[df$total_amt >0,]
+cust_trans <- nonnegative_trans %>% dplyr::group_by(customer_Id)%>%summarise(cnt= n())
+unique_cust_trans <- cust_trans[cust_trans$cnt>10,]
+unique_cust_trans
+
+
+```
+
+#11.  For all customers aged between 25 - 35, find out:
+
+#a. What was the total amount spent for for “Electronics” and “Books” product categories?
+
+```{r}
+
+require("lubridate")
+DATE <- lubridate::dmy(df$DOB)
+tran_date <- lubridate::dmy(df$tran_date)
+
+df$DIFFERENCE <- df$tran_date-DATE
+
+AGE25_35_DATA <- df[(df$DIFFERENCE > 25*365.25) & (df$DIFFERENCE < 35*365.25), ]
+AGE25_35_ELCBOOK <- AGE25_35_DATA[ (AGE25_35_DATA$prod_cat == "Electronics") | (AGE25_35_DATA$prod_cat =="Books"),]
+
+AGEBOOK_ELC <- AGE25_35_ELCBOOK %>% dplyr::group_by(prod_cat) %>% summarise(Total_Sum = sum(total_amt)) %>%dplyr::arrange(desc(prod_cat))
+
+AGEBOOK_ELC
+
+
+```
+
+
+#b. What was the total amount spent by these customers between 1st Jan, 2014 to 1st Mar, 2014?
+
+```{r}
+
+
+
+DATEBETWEEN_JANMARCH <- AGE25_35_DATA[(AGE25_35_DATA$tran_date >= "2014-01-01") & (AGE25_35_DATA$tran_date <= "2014-03-01"),]
+
+AMOUNT_SPENT_BETWEEN <- DATEBETWEEN_JANMARCH  %>% dplyr::summarise(REVENUE = sum(total_amt))
+
+AMOUNT_SPENT_BETWEEN
+
+```
+
